@@ -92,7 +92,8 @@ export class RouteSearchController {
       distancia: "Distancia mínima",
       costo: "Costo mínimo",
       tiempo: "Tiempo mínimo",
-      destinos: "Mayor cantidad de destinos",
+      destinos: "Mayor cantidad de destinos (con restricciones)",
+      destinos_libre: "Mayor cantidad de destinos (sin restricciones)",
     };
     return labels[modo] || "Ruta";
   }
@@ -178,7 +179,7 @@ export class RouteSearchController {
 
       this.renderer.setRouteResult(result, {
         label: `Ruta por ${modoLabel}`,
-        showDestinos: modo === "destinos",
+        showDestinos: modo === "destinos" || modo === "destinos_libre",
       });
       this.statusPanel.setStatus(`Ruta por ${modoLabel} calculada.`);
     } catch (error) {

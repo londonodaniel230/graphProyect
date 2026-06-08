@@ -864,8 +864,12 @@ def dijkstra_por_tiempo(
 
 
 # ---------------------------------------------------------------------------
-# BFS mayor cantidad de destinos (con restricciones)
+# DFS mayor cantidad de destinos (con restricciones)
 # ---------------------------------------------------------------------------
+
+# Límite de estados explorados para evitar bloqueos en grafos grandes
+_MAX_STATES = 200_000
+
 
 def bfs_mayor_destinos(
     graph: Graph,
@@ -879,9 +883,9 @@ def bfs_mayor_destinos(
     """
     Encuentra una ruta con la mayor cantidad de destinos respetando restricciones.
 
-    Reglas:
-        - Si existe ruta directa valida, se retorna esa ruta.
-        - Si no, se exploran rutas con BFS sin repetir nodos.
+    Usa DFS con backtracking para maximizar la cantidad de nodos visitados
+    entre origen y destino.  La ruta directa (2 nodos) solo se usa como
+    fallback si no se encuentra ningún camino con más nodos.
 
     Restricciones soportadas:
         - presupuesto_total
@@ -945,55 +949,123 @@ def bfs_mayor_destinos(
     )
     tiempo_maximo = restricciones.tiempo_maximo
 
+    return _dfs_maximizar_destinos(
+        adj, inicio_set, destino_set, presupuesto_max, tiempo_maximo,
+    )
+
+
+def bfs_mayor_destinos_libre(
+    graph: Graph,
+    inicio_id: str,
+    destino_id: str,
+    opciones: Optional[CostOptions] = None,
+    restricciones: Optional[TraversalConstraints] = None,
+    inicio_ids: Optional[List[str]] = None,
+    destino_ids: Optional[List[str]] = None,
+) -> "RouteResult":
+    """
+    Variante SIN restricciones de presupuesto/tiempo.
+
+    Maximiza destinos visitados entre origen y destino ignorando
+    completamente presupuesto y tiempo.  Respeta exclusión de
+    secundarios y filtro de aeronaves si se proporcionan.
+    """
+    restricciones = restricciones or TraversalConstraints()
+    opciones = opciones or CostOptions()
+
+    todos_ids = [nodo.id for nodo in graph.nodos]
+    inicio_ids = [item for item in (inicio_ids or []) if item]
+    destino_ids = [item for item in (destino_ids or []) if item]
+
+    if not inicio_ids:
+        inicio_ids = [inicio_id]
+    if not destino_ids:
+        destino_ids = [destino_id]
+
+    inicio_set = set(inicio_ids)
+    destino_set = set(destino_ids)
+
+    faltantes_inicio = [item for item in inicio_set if item not in todos_ids]
+    if faltantes_inicio:
+        return RouteResult(
+            camino=[],
+            pasos=[],
+            total_km=math.inf,
+            encontrado=False,
+            error=(
+                "Nodos origen no existen en el grafo: "
+                + ", ".join(sorted(faltantes_inicio))
+            ),
+        )
+
+    faltantes_destino = [item for item in destino_set if item not in todos_ids]
+    if faltantes_destino:
+        return RouteResult(
+            camino=[],
+            pasos=[],
+            total_km=math.inf,
+            encontrado=False,
+            error=(
+                "Nodos destino no existen en el grafo: "
+                + ", ".join(sorted(faltantes_destino))
+            ),
+        )
+
+    nodos_permitidos = _nodos_permitidos(
+        graph,
+        restricciones.excluir_secundarios,
+        inicio_set,
+        destino_set,
+    )
+
+    adj = _build_adjacency_con_pesos(graph, opciones, nodos_permitidos)
+
+    # Sin restricciones de presupuesto ni tiempo
+    return _dfs_maximizar_destinos(
+        adj, inicio_set, destino_set, None, None,
+    )
+
+
+# ---------------------------------------------------------------------------
+# DFS interno compartido por ambas variantes
+# ---------------------------------------------------------------------------
+
+def _dfs_maximizar_destinos(
+    adj: Dict[str, List[Tuple[str, float, float, float, str]]],
+    inicio_set: Set[str],
+    destino_set: Set[str],
+    presupuesto_max: Optional[float],
+    tiempo_maximo: Optional[float],
+) -> "RouteResult":
+    """
+    DFS con backtracking para encontrar el camino que visite la mayor
+    cantidad de nodos entre cualquier inicio y cualquier destino.
+
+    Si no encuentra ningún camino que llegue al destino, devuelve error.
+    La ruta directa (2 nodos) se trata igual que cualquier otra: solo gana
+    si no hay caminos más largos.
+    """
     mejor_camino: List[str] = []
     mejor_aristas: List[Tuple[str, float, float, float, str]] = []
     mejor_costo = math.inf
     mejor_tiempo = math.inf
     mejor_km = 0.0
+    estados_explorados = 0
 
-    # Ruta directa si existe y cumple restricciones
-    mejor_directa = None
+    # Usamos una pila (DFS iterativo) para evitar recursión profunda
+    # Estado: (nodo_actual, camino, aristas_camino, visitados_set,
+    #          costo_acum, tiempo_acum, km_acum)
+    pila: List[Tuple[str, List[str], List[Tuple[str, float, float, float, str]],
+                      Set[str], float, float, float]] = []
+
     for inicio in inicio_set:
-        for edge in adj.get(inicio, []):
-            destino, costo, tiempo, distancia_km, aeronave = edge
-            if destino not in destino_set:
-                continue
-            if not _cumple_restricciones(costo, tiempo, presupuesto_max, tiempo_maximo):
-                continue
-            if mejor_directa is None or costo < mejor_directa[1]:
-                mejor_directa = (destino, costo, tiempo, distancia_km, aeronave, inicio)
+        pila.append((inicio, [inicio], [], {inicio}, 0.0, 0.0, 0.0))
 
-    if mejor_directa is not None:
-        destino, costo, _, distancia_km, aeronave, inicio = mejor_directa
-        pasos = [
-            RouteStep(
-                origen=inicio,
-                destino=destino,
-                distancia_km=distancia_km,
-                distancia_acumulada_km=distancia_km,
-                aeronave=aeronave,
-            )
-        ]
-        return RouteResult(
-            camino=[inicio, destino],
-            pasos=pasos,
-            total_km=distancia_km,
-            encontrado=True,
-            error=None,
-            total_costo=costo,
-        )
+    while pila and estados_explorados < _MAX_STATES:
+        actual, camino, aristas_camino, visitados, costo_acum, tiempo_acum, km_acum = pila.pop()
+        estados_explorados += 1
 
-    # BFS para maximizar destinos
-    from collections import deque
-
-    cola: "deque[Tuple[str, List[str], List[Tuple[str, float, float, float, str]], Set[str], float, float, float]]" = deque()
-    for inicio in inicio_set:
-        if inicio in nodos_permitidos:
-            cola.append((inicio, [inicio], [], {inicio}, 0.0, 0.0, 0.0))
-
-    while cola:
-        actual, camino, aristas_camino, visitados, costo_acum, tiempo_acum, km_acum = cola.popleft()
-
+        # Si llegamos a un destino, evaluar si es mejor camino
         if actual in destino_set:
             es_mejor = False
             if len(camino) > len(mejor_camino):
@@ -1011,6 +1083,13 @@ def bfs_mayor_destinos(
                 mejor_tiempo = tiempo_acum
                 mejor_km = km_acum
 
+            # NO hacemos 'continue': seguimos explorando desde el destino
+            # para encontrar caminos aún más largos que pasen por él y
+            # lleguen a otro nodo destino (o regresen).
+            # Sin embargo, si el camino ya es muy largo respecto al mejor,
+            # podemos hacer poda.
+
+        # Expandir vecinos
         for edge in adj.get(actual, []):
             vecino, costo, tiempo, distancia_km, _ = edge
             if vecino in visitados:
@@ -1028,7 +1107,7 @@ def bfs_mayor_destinos(
 
             nuevo_visitados = set(visitados)
             nuevo_visitados.add(vecino)
-            cola.append(
+            pila.append(
                 (
                     vecino,
                     camino + [vecino],

@@ -18,6 +18,7 @@ from .path_algorithms import (
     CostOptions,
     TraversalConstraints,
     bfs_mayor_destinos,
+    bfs_mayor_destinos_libre,
     dijkstra_por_costo,
     dijkstra_por_distancia,
     dijkstra_por_tiempo,
@@ -30,6 +31,7 @@ _ALGORITMOS = {
     "costo": dijkstra_por_costo,
     "tiempo": dijkstra_por_tiempo,
     "destinos": bfs_mayor_destinos,
+    "destinos_libre": bfs_mayor_destinos_libre,
 }
 
 
@@ -129,7 +131,7 @@ def optimizar_ruta(
             inicio_ids=inicio_ids,
             destino_ids=destino_ids,
         )
-    elif modo_normalizado == "destinos":
+    elif modo_normalizado in ("destinos", "destinos_libre"):
         return algoritmo(
             graph,
             inicio_id,
