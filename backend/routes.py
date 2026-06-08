@@ -135,7 +135,7 @@ def geocode():
 
 
 # ---------------------------------------------------------------------------
-# Endpoints para interrupción de rutas (R4)
+# Endpoints for route interruption (R4)
 # ---------------------------------------------------------------------------
 
 @api_bp.post("/route/block")
@@ -194,7 +194,7 @@ def list_blocked_routes():
 
 
 # ---------------------------------------------------------------------------
-# Endpoint para planificación automática (R2 - dos alternativas)
+# Endpoint for automatic planning (R2 - two alternatives)
 # ---------------------------------------------------------------------------
 
 @api_bp.post("/plan")
@@ -235,10 +235,10 @@ def plan_routes():
 
 
 # ---------------------------------------------------------------------------
-# Endpoints para Planificación avanzada con gestión dinámica (2.3)
+# Endpoints for Advanced planning with dynamic management (2.3)
 # ---------------------------------------------------------------------------
 
-# Almacén en memoria de sesiones de viaje
+# In-memory store of trip sessions
 _trip_sessions: dict = {}
 
 

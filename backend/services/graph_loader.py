@@ -5,7 +5,10 @@ from ..errors import ValidationError
 from ..validators import GraphValidator
 
 
+# Loads graph data from various payload formats (JSON, bytes, dict) and validates it.
+# Returns a validated Graph object ready for route optimization and trip planning.
 class GraphLoader:
+    # Loads and validates graph data from various payload formats.
     def __init__(self, validator: Optional[GraphValidator] = None) -> None:
         self._validator = validator or GraphValidator()
 
@@ -13,6 +16,8 @@ class GraphLoader:
         data = self._coerce_payload(payload)
         return self._validator.validate(data)
 
+    # Parses incoming payload (JSON bytes, dict, or string) into a Python dict.
+    # Handles encoding and JSON format validation.
     def _coerce_payload(self, payload: Any) -> Dict[str, Any]:
         if isinstance(payload, (bytes, bytearray)):
             try:

@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 """
 models.py
-Modelos de datos del backend.
+Backend data models.
 
-Clases originales (sin cambios):
+Original classes (unmodified):
     Activity, Job, Node, Edge, AircraftConfig, GlobalConfig, Graph
 
-Clases añadidas por PERSONA 1 – Algoritmos y lógica de rutas:
-    RouteStep   – detalle de un tramo individual dentro de una ruta.
-    RouteResult – resultado completo devuelto por los algoritmos de ruta.
+Classes added by PERSON 1 – Route algorithms and logic:
+    RouteStep   – details of an individual route segment.
+    RouteResult – complete result returned by route algorithms.
 
-Clases añadidas para 2.3 – Planificación avanzada con gestión dinámica:
-    TripDecision – una decisión tomada en un paso del viaje interactivo.
-    StepOptions  – opciones disponibles al viajero en un paso concreto.
-    TripState    – estado completo del viaje interactivo.
+Classes added for 2.3 – Advanced planning with dynamic management:
+    TripDecision – a decision made during an interactive trip step.
+    StepOptions  – options available to the traveler at a concrete step.
+    TripState    – complete state of the interactive trip.
 """
 
 import math
@@ -22,9 +22,11 @@ from typing import Any, Dict, List, Optional
 
 
 # ===========================================================================
-# Modelos originales (NO MODIFICAR)
+# Original models (DO NOT MODIFY)
 # ===========================================================================
 
+# Represents an optional activity (tour, museum, etc.) available at a destination node.
+# Activities have a name, type, duration in minutes, and cost in USD.
 @dataclass(frozen=True)
 class Activity:
     nombre: str
@@ -41,6 +43,8 @@ class Activity:
         }
 
 
+# Represents a temporary job opportunity available at a destination node.
+# Jobs have a name, hourly rate in USD, and maximum hours that can be worked.
 @dataclass(frozen=True)
 class Job:
     nombre: str
@@ -55,6 +59,9 @@ class Job:
         }
 
 
+# Represents a location/destination in the travel graph.
+# Nodes contain geographic info, lodging/meal costs, available activities and jobs.
+# Hubs are key distribution centers; lat/lon enable mapping and distance calculation.
 @dataclass(frozen=True)
 class Node:
     id: str
@@ -92,6 +99,8 @@ class Node:
         return payload
 
 
+# Represents a flight connection between two nodes.
+# Edges specify distance, available aircraft types, base cost, and minimum stay duration.
 @dataclass(frozen=True)
 class Edge:
     origen: str
@@ -112,6 +121,8 @@ class Edge:
         }
 
 
+# Configuration parameters for a specific aircraft type (cost per km, time per km).
+# Used to calculate flight costs and durations based on selected aircraft.
 @dataclass(frozen=True)
 class AircraftConfig:
     costo_km: float
@@ -124,6 +135,8 @@ class AircraftConfig:
         }
 
 
+# Global system configuration containing all aircraft types and
+# mandatory cost thresholds (minimum budget %, lodging interval, meal interval).
 @dataclass(frozen=True)
 class GlobalConfig:
     aeronaves: Dict[str, AircraftConfig]
@@ -143,6 +156,8 @@ class GlobalConfig:
 
 
 @dataclass(frozen=True)
+# Represents the complete travel network: a collection of destinations (nodes),
+# flight connections between them (edges), and system-wide configuration settings.
 class Graph:
     nodos: List[Node]
     aristas: List[Edge]
@@ -157,22 +172,24 @@ class Graph:
 
 
 # ===========================================================================
-# Nuevos modelos – PERSONA 1 / Algoritmos y lógica de rutas
+# New models – PERSON 1 / Route algorithms and logic
 # ===========================================================================
 
+# Represents a single leg of a calculated route.
+# Stores origin, destination, distance, cumulative distance, and aircraft used.
 @dataclass
 class RouteStep:
     """
-    Representa un tramo individual dentro de una ruta calculada.
+    Represents an individual segment within a calculated route.
 
-    Atributos
-    ---------
-    origen                : ID del nodo de salida del tramo.
-    destino               : ID del nodo de llegada del tramo.
-    distancia_km          : distancia de este tramo en kilómetros.
-    distancia_acumulada_km: distancia total recorrida hasta llegar a ``destino``.
-    aeronave              : tipo de aeronave disponible para el tramo (puede
-                            ser None si la arista no especifica ninguna).
+    Attributes
+    ----------
+    origen                : ID of the segment departure node.
+    destino               : ID of the segment arrival node.
+    distancia_km          : distance of this segment in kilometers.
+    distancia_acumulada_km: total distance traveled until reaching ``destino``.
+    aeronave              : type of aircraft available for the segment (may
+                            be None if the edge does not specify any).
     """
 
     origen: str
@@ -191,21 +208,23 @@ class RouteStep:
         }
 
 
+# Complete result from a pathfinding algorithm.
+# Contains the full path (if found), individual route steps, total distance/cost, and any errors.
 @dataclass
 class RouteResult:
     """
-    Resultado completo devuelto por cualquier algoritmo de ruta.
+    Complete result returned by any route algorithm.
 
-    Atributos
-    ---------
-    camino      : lista de IDs de nodos en orden de visita
-                  (vacía si no se encontró ruta).
-    pasos       : lista de RouteStep con el detalle de cada tramo.
-    total_km    : distancia total de la ruta en km
-                  (math.inf si no se encontró ruta).
-    total_costo : costo total de la ruta (USD) si aplica.
-    encontrado  : True si existe una ruta válida, False en caso contrario.
-    error       : mensaje descriptivo cuando ``encontrado`` es False.
+    Attributes
+    ----------
+    camino      : list of node IDs in visit order
+                  (empty if no route was found).
+    pasos       : list of RouteStep with details of each segment.
+    total_km    : total distance of the route in km
+                  (math.inf if no route was found).
+    total_costo : total cost of the route (USD) if applicable.
+    encontrado  : True if a valid route exists, False otherwise.
+    error       : descriptive message when ``encontrado`` is False.
     """
 
     camino: List[str]
@@ -232,12 +251,13 @@ class RouteResult:
 
 
 # ===========================================================================
-# Modelos PLANIFICACION AVANZADA – 2.3
+# ADVANCED PLANNING models – 2.3
 # ===========================================================================
+
 
 @dataclass
 class TripDecision:
-    """Registro de una decisión tomada durante el viaje interactivo."""
+    """Record of a decision made during the interactive trip."""
 
     tipo: str  # "vuelo", "alojamiento", "alimentacion", "actividad", "trabajo", "tiempo_libre", "fin"
     node_id: str
@@ -257,11 +277,13 @@ class TripDecision:
         }
 
 
+# Represents all available options to the traveler at a specific step:
+# current location, required actions (lodging/meals), optional activities, jobs, and available flights.
 @dataclass
 class StepOptions:
-    """Opciones disponibles al viajero en un paso concreto del viaje."""
+    """Options available to the traveler at a concrete step of the trip."""
 
-    # Información del paso actual
+    # Information of the current step
     node_id: str
     node_nombre: str
     node_ciudad: str
@@ -318,6 +340,8 @@ class StepOptions:
         }
 
 
+# Final summary report of a completed interactive trip.
+# Aggregates all decisions, final budget/earnings, time spent, and activity counts.
 @dataclass
 class TripReport:
     """Reporte final del viaje interactivo."""

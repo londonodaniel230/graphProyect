@@ -9,6 +9,8 @@ NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 USER_AGENT = "proyecto-2/1.0 (geocoding)"
 
 
+# Queries the OpenStreetMap Nominatim API to geocode a location string.
+# Returns a list of matching locations with coordinates (lat/lon) and metadata.
 def geocode_country(query: str) -> List[Dict[str, Any]]:
     query = (query or "").strip()
     if not query:

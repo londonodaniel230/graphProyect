@@ -1,3 +1,5 @@
+// Manages the route optimization search form: mode, budget, time, aircraft selection.
+// Sends queries to backend and displays results on the map.
 export class RouteSearchController {
   constructor({ formEl, store, renderer, statusPanel, api }) {
     this.formEl = formEl;
@@ -20,6 +22,7 @@ export class RouteSearchController {
     this.workInput = null;
   }
 
+  // Initializes form elements and event listeners.
   init() {
     if (!this.formEl) {
       return;
@@ -30,11 +33,13 @@ export class RouteSearchController {
     this._updateFormState();
   }
 
+  // Updates form state after graph is loaded.
   onGraphLoaded() {
     this._refreshSuggestions();
     this._updateFormState();
   }
 
+  // Caches DOM element references from the search form.
   _cacheElements() {
     this.modeSelect = this.formEl.querySelector("#search-mode");
     this.originInput = this.formEl.querySelector("#search-origin-country");
@@ -52,12 +57,14 @@ export class RouteSearchController {
     this.workInput = this.formEl.querySelector("#search-work");
   }
 
+  // Attaches event listeners to form controls.
   _bindEvents() {
     this.formEl.addEventListener("submit", (event) => {
       this._onSubmit(event);
     });
   }
 
+  // Enables or disables search submission based on graph availability.
   _updateFormState() {
     const submitBtn = this.formEl.querySelector("button[type='submit']");
     if (submitBtn) {
@@ -65,6 +72,7 @@ export class RouteSearchController {
     }
   }
 
+  // Populates suggestion lists from loaded graph nodes.
   _refreshSuggestions() {
     if (!this.store.hasGraph()) {
       return;

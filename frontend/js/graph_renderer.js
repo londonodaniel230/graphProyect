@@ -1,5 +1,7 @@
 import { getLayoutForMode, LayoutModes } from "./graph_layout.js";
 
+// Canvas-based graph visualization: renders nodes, edges, and calculated routes.
+// Supports interactive node/edge selection and dynamic layout modes (map or circle).
 export class GraphRenderer {
   constructor(canvas, detailsEl, statsEl, layoutMode = LayoutModes.MAP) {
     this.canvas = canvas;
@@ -18,6 +20,7 @@ export class GraphRenderer {
     this._bindEvents();
   }
 
+  // Resizes canvas to match container and recomputes layout positions.
   resize() {
     const rect = this.canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
@@ -38,6 +41,7 @@ export class GraphRenderer {
     this.draw();
   }
 
+  // Loads a new graph and renders it with the current layout mode.
   setGraph(graph) {
     this.graph = graph;
     this.selectedNodeId = null;
@@ -47,6 +51,7 @@ export class GraphRenderer {
     this.draw();
   }
 
+  // Switches between layout modes (circle or map-based geographic layout).
   setLayoutMode(layoutMode) {
     this.layoutMode = layoutMode;
     this.layoutFn = getLayoutForMode(layoutMode);
@@ -56,6 +61,7 @@ export class GraphRenderer {
     }
   }
 
+  // Clears the canvas and displays empty state message.
   clear() {
     this.graph = null;
     this.selectedNodeId = null;
@@ -65,6 +71,7 @@ export class GraphRenderer {
     this.draw();
   }
 
+  // Renders all nodes and edges to the canvas.
   draw() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.width, this.height);
@@ -78,6 +85,7 @@ export class GraphRenderer {
     this._drawNodes();
   }
 
+  // Computes node positions using the current layout algorithm.
   _computeLayout() {
     if (!this.graph) {
       return new Map();
@@ -86,6 +94,7 @@ export class GraphRenderer {
     return this.layoutFn(this.graph.nodos, this.width, this.height);
   }
 
+  // Attaches click event listener to detect node selection.
   _bindEvents() {
     this.canvas.addEventListener("click", (event) => {
       if (!this.graph) {
@@ -107,6 +116,7 @@ export class GraphRenderer {
     });
   }
 
+  // Converts DOM click event to canvas coordinates.
   _getPoint(event) {
     const rect = this.canvas.getBoundingClientRect();
     return {
@@ -115,6 +125,7 @@ export class GraphRenderer {
     };
   }
 
+  // Finds node at given canvas coordinates using distance calculation.
   _findNodeAt(x, y) {
     const radius = 12;
     for (const node of this.graph.nodos) {
@@ -133,6 +144,7 @@ export class GraphRenderer {
     return null;
   }
 
+  // Renders all edges as lines between connected nodes.
   _drawEdges() {
     const ctx = this.ctx;
     ctx.save();
@@ -155,6 +167,7 @@ export class GraphRenderer {
     ctx.restore();
   }
 
+  // Renders all nodes as circles with city labels.
   _drawNodes() {
     const ctx = this.ctx;
     const radius = 10;

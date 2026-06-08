@@ -1,3 +1,5 @@
+// Leaflet.js-based map visualization: displays nodes and edges on an interactive map.
+// Supports route highlighting and node/edge click handlers.
 export class MapRenderer {
   constructor(mapEl, detailsEl, statsEl) {
     this.mapEl = mapEl;
@@ -19,6 +21,7 @@ export class MapRenderer {
     }
   }
 
+  // Loads and renders the current graph on the map.
   setGraph(graph) {
     this.graph = graph;
     this.routeResult = null;
@@ -37,6 +40,7 @@ export class MapRenderer {
     this._setDetailsLines(["Sin datos cargados."]);
   }
 
+  // Displays a calculated route on the map with highlighting and markers.
   setRouteResult(routeResult, options = {}) {
     this.routeResult = routeResult;
     this._clearRoute();
@@ -523,6 +527,7 @@ export class MapRenderer {
     }
   }
 
+  // Clears all existing markers and layers from the map.
   _clearRoute() {
     if (this.routeLayer) {
       this.routeLayer.clearLayers();

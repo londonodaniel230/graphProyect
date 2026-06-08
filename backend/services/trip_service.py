@@ -30,9 +30,11 @@ from ..models import (
 TRABAJO_UMBRAL_PORC = 35.0
 
 
+# Tracks the current state of an in-flight segment during an interactive trip.
+# Stores progress, elapsed time, position interpolation, costs, and completion status.
 class FlightState:
-    """Estado del vuelo en curso (movimiento progresivo)."""
-
+    # Represents the current state of a flight segment in progress:
+    # tracks progress (0.0-1.0), elapsed time, costs, and completion status.
     def __init__(
         self,
         edge: Edge,
@@ -56,8 +58,12 @@ class FlightState:
         self.completed = False
 
 
+# Manages an interactive step-by-step trip through the travel network.
+# Handles optional activities, temporary jobs, lodging/meal costs, flight progression,
+# decision recording, and final trip report generation.
+# Coordinates with route blockers for real-time flight interruption handling.
 class TripService:
-    """Servicio que gestiona una sesión de viaje interactivo paso a paso."""
+    """Service that manages an interactive trip session step by step."""
 
     def __init__(self, graph: Graph, origin_id: str, initial_budget: float) -> None:
         self.graph = graph
@@ -93,11 +99,12 @@ class TripService:
         self.aircraft_config = getattr(cfg, "aeronaves", {}) or {}
 
     # ------------------------------------------------------------------
-    # Acceso público al estado
+    # Public access to state
     # ------------------------------------------------------------------
 
+    # Returns all available options for the traveler at the current step:
+    # current location, required expenses, optional activities, jobs, and available flights.
     def get_step_options(self) -> StepOptions:
-        """Retorna las opciones disponibles para el paso actual."""
         node = self._current_node()
 
         necesita_aloj = self._needs_lodging()
@@ -144,9 +151,11 @@ class TripService:
         )
 
     # ------------------------------------------------------------------
-    # Acciones del viajero
+    # Traveler actions
     # ------------------------------------------------------------------
 
+    # Executes an optional activity at the current node:
+    # deducts cost, adds time elapsed, and records the decision.
     def realizar_actividad(
         self, activity_index: int
     ) -> Tuple[StepOptions, Optional[str]]:
@@ -180,6 +189,8 @@ class TripService:
 
         return self.get_step_options(), None
 
+    # Executes a temporary job at the current node when budget is low (<35% initial):
+    # pays the specified hours at the job's hourly rate and records earnings.
     def realizar_trabajo(
         self, job_index: int, hours: float
     ) -> Tuple[StepOptions, Optional[str]]:
@@ -222,6 +233,7 @@ class TripService:
 
         return self.get_step_options(), None
 
+    # Pays for mandatory lodging at the current node (8 hours elapsed).
     def realizar_alojamiento(self) -> Tuple[StepOptions, Optional[str]]:
         """Paga el alojamiento obligatorio."""
         node = self._current_node()
@@ -250,19 +262,19 @@ class TripService:
         return self.get_step_options(), None
 
     def realizar_alimentacion(self) -> Tuple[StepOptions, Optional[str]]:
-        """Paga la alimentación obligatoria."""
-        # Si estamos en un nodo, usamos su costo; si estamos en vuelo, del último nodo
+        """Pays the mandatory meal expense."""
+        # If we're at a node, we use its cost; if we're in flight, from the last node
         node = self._current_node()
         costo = float(node.costo_alimentacion or 0)
 
         if costo > self.current_budget:
-            return self.get_step_options(), "Presupuesto insuficiente para la alimentación."
+            return self.get_step_options(), "Insufficient budget for food."
 
         self.current_budget -= costo
         self.total_spent += costo
         self.last_food_time = self.time_elapsed_hours
         self.last_food_node_id = node.id
-        # La alimentación ocupa 1 hora
+        # Meal takes 1 hour
         duracion = 1.0
         self.time_elapsed_hours += duracion
 
@@ -277,6 +289,8 @@ class TripService:
 
         return self.get_step_options(), None
 
+    # Initiates a progressive flight from current node to destination.
+    # Creates a FlightState and allows animating progress via avanzar_vuelo().
     def iniciar_vuelo(
         self, destination_id: str, aircraft_name: str
     ) -> Tuple[Dict[str, Any], Optional[str]]:
@@ -359,7 +373,7 @@ class TripService:
         if error:
             return self.get_step_options(), error
 
-        # Completar inmediatamente (modo síncrono, para tests / uso sin UI)
+        # Complete immediately (synchronous mode, for tests / use without UI)
         node = self._current_node()
         flight = self.current_flight
         if flight is None:
@@ -370,6 +384,8 @@ class TripService:
         self._finalizar_vuelo(snapshot_origen_id=node.id)
         return self.get_step_options(), None
 
+    # Advances flight simulation by the specified time (in seconds).
+    # Updates progress, position interpolation, and checks for route blocks.
     def avanzar_vuelo(self, dt_segundos: float) -> Dict[str, Any]:
         """
         Avanza la simulación del vuelo en curso en ``dt_segundos`` segundos.
@@ -410,7 +426,7 @@ class TripService:
         return self._flight_snapshot()
 
     def verificar_bloqueo(self, route_blocker=None) -> bool:
-        """Retorna True si el segmento actual está bloqueado en tiempo real."""
+        """Returns True if the current segment is blocked in real-time."""
         if self.current_flight is None:
             return False
         if route_blocker is None:
@@ -421,6 +437,8 @@ class TripService:
             self.current_flight.destino_id,
         )
 
+    # Cancels the current flight and returns traveler to the trip origin.
+    # Recalculates a new route avoiding the blocked segment.
     def cancelar_vuelo_y_recalcular(
         self, route_blocker=None
     ) -> Dict[str, Any]:
@@ -473,7 +491,7 @@ class TripService:
         except Exception as exc:  # noqa: BLE001
             error_recalc = str(exc)
 
-        # Registrar la cancelación como decisión
+        # Record the cancellation as a decision
         self.decisions.append(TripDecision(
             tipo="vuelo_cancelado",
             node_id=origen_tramo,
@@ -515,10 +533,10 @@ class TripService:
         flight.completed = True
         flight.progress = 1.0
 
-        # Aplicar tiempo total (vuelo + estancia mínima)
+        # Apply total time (flight + minimum stay)
         self.time_elapsed_hours += flight.tiempo_vuelo_h + flight.estancia_h
 
-        # Alimentación durante el vuelo
+        # Meal during flight
         self._check_food_during_flight(flight.tiempo_vuelo_h)
 
         # Mover al destino
@@ -546,7 +564,7 @@ class TripService:
         self.destination_target_id = None
 
     def _flight_snapshot(self) -> Dict[str, Any]:
-        """Devuelve un snapshot de la posición actual del vuelo en curso."""
+        """Returns a snapshot of the current position of the flight in progress."""
         if self.current_flight is None:
             return {
                 "enVuelo": False,
@@ -598,6 +616,8 @@ class TripService:
             "nodeId": self.current_node_id,
         }
 
+    # Finalizes the trip and generates a comprehensive report.
+    # Counts decisions by type and returns aggregated statistics.
     def finalizar_viaje(self) -> TripReport:
         """Finaliza el viaje y genera el reporte."""
         self.completed = True
@@ -654,7 +674,7 @@ class TripService:
         return (self.time_elapsed_hours - self.last_food_time) >= self.food_interval
 
     def _check_food_during_stay(self, duration_hours: float) -> None:
-        """Verifica si durante una estancia se necesita alimentación y cobra automáticamente."""
+        """Checks if food is needed during a stay and charges automatically."""
         if self.food_interval <= 0:
             return
         for _ in range(int(duration_hours)):
@@ -680,14 +700,14 @@ class TripService:
                     ))
 
     def _check_food_during_flight(self, flight_hours: float) -> None:
-        """Si durante el vuelo se cumplen 8h de alimentación, se cobra del último nodo."""
+        """If during the flight 8 hours of food time are met, charge from the last visited node."""
         if self.food_interval <= 0:
             return
         hours_until_food = self.food_interval - (
             self.time_elapsed_hours - self.last_food_time - flight_hours
         )
         if hours_until_food <= 0:
-            # Debe alimentarse; usamos el costo del último nodo visitado
+            # Must eat; we use the cost of the last visited node
             node = self._current_node()
             costo = float(node.costo_alimentacion or 0)
             if costo <= self.current_budget:

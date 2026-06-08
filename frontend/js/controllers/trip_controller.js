@@ -1,3 +1,5 @@
+// Manages interactive trip planning: step-by-step decisions with optional activities, jobs, and flights.
+// Handles flight animation, real-time route blocking, and trip completion reporting.
 export class TripController {
   constructor({ formEl, store, renderer, api, onViewSwitch }) {
     this.formEl = formEl;
@@ -22,6 +24,7 @@ export class TripController {
     this._flightInProgress = false;
   }
 
+  // Initializes form elements and event listeners.
   init() {
     if (!this.formEl) {
       return;
@@ -31,10 +34,12 @@ export class TripController {
     this._bindEvents();
   }
 
+  // Updates suggestions list after graph is loaded.
   onGraphLoaded() {
     this._refreshSuggestions();
   }
 
+  // Checks if the current flight matches a blocked route; interrupts if so.
   interruptIfRouteMatches(origen, destino) {
     if (!this._flightInProgress) {
       return false;
@@ -54,6 +59,7 @@ export class TripController {
     return false;
   }
 
+  // Caches DOM element references from the trip form.
   _cacheElements() {
     this.originInput = this.formEl.querySelector("#trip-origin");
     this.budgetInput = this.formEl.querySelector("#trip-budget");
@@ -64,12 +70,14 @@ export class TripController {
     this.reportEl = document.getElementById("trip-report");
   }
 
+  // Attaches event listeners to form controls.
   _bindEvents() {
     this.formEl.addEventListener("submit", (event) => {
       this._onStartTrip(event);
     });
   }
 
+  // Populates suggestion lists from loaded graph nodes.
   _refreshSuggestions() {
     if (!this.store.hasGraph() || !this.originSuggestions) {
       return;
@@ -539,7 +547,7 @@ export class TripController {
   }
 
   _onFlightTick() {
-    /* hook para futuras extensiones; la posición se actualiza en el loop principal */
+    /* hook for future extensions; position is updated in main loop */
   }
 
   _renderFlightStatus(snapshot, message) {

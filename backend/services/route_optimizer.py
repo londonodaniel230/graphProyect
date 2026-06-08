@@ -25,7 +25,8 @@ from .path_algorithms import (
 )
 
 
-# Registro de algoritmos disponibles por modo
+# Mapping of optimization modes to their corresponding pathfinding algorithms.
+# Supports multiple criteria: distance, cost, time, and number of destinations.
 _ALGORITMOS = {
     "distancia": dijkstra_por_distancia,
     "costo": dijkstra_por_costo,
@@ -35,6 +36,8 @@ _ALGORITMOS = {
 }
 
 
+# Filters the graph by removing edges that are marked as blocked.
+# Returns a new Graph object with only the allowed edges.
 def _filtrar_aristas_bloqueadas(graph: Graph, blocked: Optional[list] = None) -> Graph:
     if not blocked:
         return graph
@@ -145,5 +148,5 @@ def optimizar_ruta(
 
 
 def modos_disponibles() -> list:
-    """Retorna la lista de modos de optimización registrados."""
+    """Returns the list of registered optimization modes."""
     return sorted(_ALGORITMOS.keys())

@@ -7,10 +7,10 @@ DEFAULT_PRESUPUESTO_MINIMO_PORC = 35.0
 DEFAULT_INTERVALO_ALOJAMIENTO = 20.0
 DEFAULT_INTERVALO_ALIMENTACION = 8.0
 
-# Valores predeterminados para los tres tipos de aeronave del requerimiento 2.3
-# Avión Comercial: 0.18 USD/km, 0.12 min/km
-# Avión Regional:  0.25 USD/km, 0.7  min/km
-# Hélice:          1.1  USD/km, 2.5  min/km
+# Default values for the three types of aircraft from requirement 2.3
+# Commercial Aircraft: 0.18 USD/km, 0.12 min/km
+# Regional Aircraft:  0.25 USD/km, 0.7  min/km
+# Helicopter:        1.1  USD/km, 2.5  min/km
 DEFAULT_AIRCRAFT: dict = {
     "Avión Comercial": AircraftConfig(costo_km=0.18, tiempo_km=0.12),
     "Avión Regional": AircraftConfig(costo_km=0.25, tiempo_km=0.7),
@@ -18,6 +18,8 @@ DEFAULT_AIRCRAFT: dict = {
 }
 
 
+# Collects validation errors during the graph loading process.
+# Errors are accumulated and raised as a ValidationError if any are found.
 class ValidationContext:
     def __init__(self) -> None:
         self.errors: List[str] = []
@@ -30,6 +32,7 @@ class ValidationContext:
             raise ValidationError(self.errors)
 
 
+# Validates that a value is a dictionary; adds error message if not.
 def ensure_object(
     value: Any, path: str, ctx: ValidationContext
 ) -> Optional[Dict[str, Any]]:
@@ -39,6 +42,7 @@ def ensure_object(
     return value
 
 
+# Validates that a value is a list/array; adds error message if not.
 def ensure_array(value: Any, path: str, ctx: ValidationContext) -> Optional[List[Any]]:
     if not isinstance(value, list):
         ctx.add(f"{path} must be an array.")
@@ -256,7 +260,7 @@ def parse_aircraft_config(raw: Any, ctx: ValidationContext) -> Dict[str, Aircraf
 
                 aeronaves[key] = AircraftConfig(costo_km=costo_km, tiempo_km=tiempo_km)
 
-    # Añadir aeronaves por defecto si no están definidas
+    # Add default aircraft if not defined
     for nombre, config in DEFAULT_AIRCRAFT.items():
         if nombre not in aeronaves:
             aeronaves[nombre] = config
@@ -323,6 +327,8 @@ def find_duplicates(values: List[str]) -> List[str]:
     return sorted(duplicates)
 
 
+# Validates incoming graph JSON data and constructs a validated Graph object.
+# Ensures all nodes, edges, and configurations meet the required format and constraints.
 class GraphValidator:
     def validate(self, data: Dict[str, Any]) -> Graph:
         ctx = ValidationContext()

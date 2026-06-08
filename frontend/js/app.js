@@ -1,3 +1,6 @@
+// Main application module: initializes all controllers and services.
+// Coordinates graph loading, rendering, route optimization, and interactive trip planning.
+
 import { ApiClient, ApiError } from "./api_client.js";
 import { MapRenderer } from "./map_renderer.js";
 import { GraphStore } from "./graph_store.js";

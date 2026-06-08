@@ -1,3 +1,6 @@
+// Layout algorithms for positioning nodes on the canvas.
+// Supports circle layout (nodes in a circle) and map layout (geographic positioning).
+
 const REGION_ANCHORS = {
   America: { x: 0.25, y: 0.55 },
   Europe: { x: 0.62, y: 0.35 },
@@ -32,6 +35,7 @@ export const LayoutModes = {
   MAP: "map",
 };
 
+// Selects the appropriate layout algorithm function based on the requested mode.
 export function getLayoutForMode(mode) {
   if (mode === LayoutModes.CIRCLE) {
     return computeCircleLayout;
@@ -39,6 +43,7 @@ export function getLayoutForMode(mode) {
   return computeMapLayout;
 }
 
+// Computes circle layout: positions nodes evenly on a circle.
 export function computeCircleLayout(nodes, width, height) {
   const centerX = width / 2;
   const centerY = height / 2;
@@ -56,6 +61,8 @@ export function computeCircleLayout(nodes, width, height) {
   return positions;
 }
 
+// Computes geographic map layout: positions nodes based on their coordinates.
+// Falls back to regional clustering if coordinates are missing.
 export function computeMapLayout(nodes, width, height) {
   const safeWidth = Math.max(1, width);
   const safeHeight = Math.max(1, height);

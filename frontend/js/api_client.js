@@ -1,3 +1,5 @@
+// Custom error class for API request failures.
+// Stores array of error messages from the server.
 export class ApiError extends Error {
   constructor(messages) {
     super("API Error");
@@ -5,7 +7,10 @@ export class ApiError extends Error {
   }
 }
 
+// HTTP client for communicating with the backend API.
+// Handles file uploads, geocoding requests, and route optimization queries.
 export class ApiClient {
+  // Sends a graph file to the server for validation and loading.
   async uploadGraph(file) {
     const formData = new FormData();
     formData.append("file", file);
@@ -29,6 +34,7 @@ export class ApiClient {
     return data;
   }
 
+  // Queries the backend geocoding service to find coordinates for a location.
   async geocode(query) {
     const url = `/api/geocode?query=${encodeURIComponent(query)}`;
     const response = await fetch(url);
@@ -47,6 +53,7 @@ export class ApiClient {
     return data && data.results ? data.results : [];
   }
 
+  // Requests route optimization from the backend with specified criteria.
   async optimizeRoute(payload) {
     const response = await fetch("/api/route", {
       method: "POST",
@@ -68,6 +75,7 @@ export class ApiClient {
     return data;
   }
 
+  // Initializes an interactive trip session with origin and budget.
   async startTrip(payload) {
     const response = await fetch("/api/trip/start", {
       method: "POST",
@@ -89,6 +97,7 @@ export class ApiClient {
     return data;
   }
 
+  // Sends a traveler action (activity, job, flight, etc.) to the current trip session.
   async tripAction(payload) {
     const response = await fetch("/api/trip/act", {
       method: "POST",
@@ -110,6 +119,7 @@ export class ApiClient {
     return data;
   }
 
+  // Initiates a flight from the current node to a destination.
   async iniciarVuelo(payload) {
     const response = await fetch("/api/trip/act", {
       method: "POST",
@@ -123,6 +133,7 @@ export class ApiClient {
     return data;
   }
 
+  // Advances flight simulation by a time delta; updates progress and position.
   async avanzarVuelo(payload) {
     const response = await fetch("/api/trip/act", {
       method: "POST",
@@ -136,6 +147,7 @@ export class ApiClient {
     return data;
   }
 
+  // Checks if the current flight segment is blocked by a real-time route blocker.
   async verificarBloqueo(payload) {
     const response = await fetch("/api/trip/act", {
       method: "POST",
@@ -149,6 +161,7 @@ export class ApiClient {
     return data;
   }
 
+  // Cancels an ongoing flight and returns traveler to the origin node.
   async cancelarVuelo(payload) {
     const response = await fetch("/api/trip/act", {
       method: "POST",
@@ -162,6 +175,7 @@ export class ApiClient {
     return data;
   }
 
+  // Blocks a route between two nodes to simulate traffic or closures.
   async blockRoute(payload) {
     const response = await fetch("/api/route/block", {
       method: "POST",
@@ -175,6 +189,7 @@ export class ApiClient {
     return data;
   }
 
+  // Unblocks a previously blocked route, restoring travel capability.
   async unblockRoute(payload) {
     const response = await fetch("/api/route/unblock", {
       method: "POST",

@@ -1,8 +1,11 @@
+// In-memory store for the loaded travel network graph.
+// Provides access to nodes and edges, and supports searching by country/name.
 export class GraphStore {
   constructor() {
     this.graph = null;
   }
 
+  // Stores the complete graph data; makes defensive copies of arrays.
   setGraph(graph) {
     if (!graph) {
       this.graph = null;
@@ -16,14 +19,17 @@ export class GraphStore {
     };
   }
 
+  // Returns true if a graph has been loaded.
   hasGraph() {
     return Boolean(this.graph);
   }
 
+  // Returns the full graph object.
   getGraph() {
     return this.graph;
   }
 
+  // Searches for a single node matching the given country name.
   findNodeByCountry(country) {
     if (!this.graph) {
       return null;
@@ -38,6 +44,7 @@ export class GraphStore {
     );
   }
 
+  // Returns all nodes matching the given country name.
   findNodesByCountry(country) {
     if (!this.graph) {
       return [];
@@ -53,6 +60,7 @@ export class GraphStore {
     });
   }
 
+  // Adds or updates a node in the store.
   upsertNode(node) {
     if (!this.graph) {
       return;
@@ -70,6 +78,7 @@ export class GraphStore {
     }
   }
 
+  // Adds a new edge between two nodes if it doesn't already exist.
   addRoute(originId, destinationId, route) {
     if (!this.graph) {
       throw new Error("No hay un grafo cargado.");

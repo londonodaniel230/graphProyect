@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-path_algorithms.py  –  PERSONA 1 / DANIEL
-Algoritmos de búsqueda de rutas sobre el grafo de viajes.
+path_algorithms.py  –  PERSON 1 / DANIEL
+Route search algorithms over the travel graph.
 
-Algoritmos implementados:
-    - dijkstra_por_distancia : ruta óptima usando distancia_km como peso.
-    - dijkstra_por_costo     : ruta optima usando costo como peso.
-    - dijkstra_por_tiempo    : ruta optima usando tiempo como peso.
-    - bfs_mayor_destinos     : ruta con mas destinos con restricciones.
+Implemented algorithms:
+    - dijkstra_por_distancia : optimal route using distancia_km as weight.
+    - dijkstra_por_costo     : optimal route using cost as weight.
+    - dijkstra_por_tiempo    : optimal route using time as weight.
+    - bfs_mayor_destinos     : route with more destinations with constraints.
 """
 
 import math
@@ -17,6 +17,8 @@ from typing import Dict, Iterable, List, Optional, Set, Tuple
 from ..models import Graph, RouteResult, RouteStep
 
 
+# Configuration options for route cost calculation.
+# Controls which aircraft are allowed, and whether lodging, meals, and work income are included.
 @dataclass(frozen=True)
 class CostOptions:
     aeronaves_permitidas: Optional[Set[str]] = None
@@ -25,6 +27,8 @@ class CostOptions:
     incluir_trabajo: bool = True
 
 
+# Constraints applied to route traversal:
+# Maximum total budget, maximum time allowed, and whether secondary edges should be excluded.
 @dataclass(frozen=True)
 class TraversalConstraints:
     presupuesto_total: Optional[float] = None
@@ -33,16 +37,18 @@ class TraversalConstraints:
 
 
 # ---------------------------------------------------------------------------
-# Helpers internos
+# Internal helpers
 # ---------------------------------------------------------------------------
 
+
+# Builds an adjacency list from the graph for pathfinding algorithms.
 def _build_adjacency(graph: Graph) -> Dict[str, List[Tuple[str, float, str]]]:
     """
-    Construye un mapa de adyacencia a partir del modelo Graph.
+    Builds an adjacency map from the Graph model.
 
-    Retorna:
+    Returns:
         {
-            origen_id: [(destino_id, distancia_km, aeronave_principal), ...]
+            origen_id: [(destino_id, distancia_km, main_aircraft), ...]
         }
     """
     adj: Dict[str, List[Tuple[str, float, str]]] = {
@@ -58,12 +64,13 @@ def _build_adjacency(graph: Graph) -> Dict[str, List[Tuple[str, float, str]]]:
     return adj
 
 
+# Reconstructs a path from predecessor map using backtracking.
 def _reconstruir_camino(
     pred: Dict[str, Optional[str]],
     inicio_id: str,
     destino_id: str,
 ) -> List[str]:
-    """Reconstruye la lista de IDs desde inicio hasta destino usando pred."""
+    """Reconstructs the list of IDs from start to destination using pred."""
     camino: List[str] = []
     actual: Optional[str] = destino_id
     while actual is not None:
@@ -90,6 +97,8 @@ def _reconstruir_camino_multi(
     return camino
 
 
+# Calculates the cost of lodging and meals during a stay at a destination.
+# Returns the total cost based on stay duration and configuration intervals.
 def _calcular_costo_estancia(
     destino: Optional["object"],
     estancia_minima: float,
@@ -117,10 +126,12 @@ def _calcular_costo_estancia(
     return costo
 
 
+# Normalizes aircraft names to lowercase and removes duplicates for comparison.
 def _normalizar_aeronaves(values: Iterable[str]) -> Set[str]:
     return {value.strip().lower() for value in values if value and value.strip()}
 
 
+# Filters aircraft by allowed list; returns only aircraft that are permitted.
 def _filtrar_aeronaves(
     aeronaves: List[str],
     permitidas: Optional[Set[str]],
@@ -136,6 +147,8 @@ def _filtrar_aeronaves(
     return resultado
 
 
+# Selects the cheapest aircraft from a list, respecting allowed aircraft filter.
+# Returns the aircraft name and its cost per km.
 def _seleccionar_aeronave_mas_barata(
     aeronaves: List[str],
     config: Optional["object"],
@@ -351,6 +364,7 @@ def _cumple_restricciones(
 # Dijkstra por distancia  (responsabilidad de DANIEL)
 # ---------------------------------------------------------------------------
 
+# Dijkstra's algorithm optimizing by distance (shortest path).
 def dijkstra_por_distancia(
     graph: Graph,
     inicio_id: str,
@@ -407,7 +421,7 @@ def dijkstra_por_distancia(
 
     no_visitados: set = set(todos_ids)
 
-    # --------------------------------------------------------------- iteración
+    # ------------------------------------------------------------- iteration
     while no_visitados:
         # Seleccionar el nodo no visitado con menor distancia conocida
         u = min(no_visitados, key=lambda v: dist[v])
@@ -422,7 +436,7 @@ def dijkstra_por_distancia(
             # Destino alcanzado; no es necesario continuar
             break
 
-        # Relajación de aristas salientes
+        # Relaxation of outgoing edges
         for (vecino, peso_km, aeronave) in adj.get(u, []):
             if vecino not in no_visitados:
                 continue
@@ -432,7 +446,7 @@ def dijkstra_por_distancia(
                 pred[vecino] = u
                 pred_aeronave[vecino] = aeronave
 
-    # ------------------------------------------- reconstrucción del resultado
+    # ------------------------------------------- result reconstruction
     if dist[destino_id] == math.inf:
         return RouteResult(
             camino=[],
@@ -480,6 +494,7 @@ def dijkstra_por_distancia(
 # Dijkstra por costo  (responsabilidad TAiKK)
 # ---------------------------------------------------------------------------
 
+# Dijkstra's algorithm optimizing by cost (cheapest path).
 def dijkstra_por_costo(
     graph: Graph,
     inicio_id: str,
@@ -699,7 +714,7 @@ def _build_adjacency_por_tiempo(
         )
         if not aeronave:
             continue
-        # Tiempo total = tiempo de vuelo + estancia mínima
+        # Total time = flight time + minimum stay
         tiempo_vuelo = arista.distancia_km * (tiempo_km or 0.0)
         tiempo_total = tiempo_vuelo + arista.estancia_minima
 
@@ -711,6 +726,7 @@ def _build_adjacency_por_tiempo(
     return adj
 
 
+# Dijkstra's algorithm optimizing by time (fastest path).
 def dijkstra_por_tiempo(
     graph: Graph,
     inicio_id: str,
@@ -867,10 +883,11 @@ def dijkstra_por_tiempo(
 # DFS mayor cantidad de destinos (con restricciones)
 # ---------------------------------------------------------------------------
 
-# Límite de estados explorados para evitar bloqueos en grafos grandes
+# Limit of explored states to avoid deadlocks in large graphs
 _MAX_STATES = 200_000
 
 
+# BFS algorithm to find the route with the maximum number of destinations.
 def bfs_mayor_destinos(
     graph: Graph,
     inicio_id: str,
@@ -1052,7 +1069,7 @@ def _dfs_maximizar_destinos(
     mejor_km = 0.0
     estados_explorados = 0
 
-    # Usamos una pila (DFS iterativo) para evitar recursión profunda
+    # Use a stack (iterative DFS) to avoid deep recursion
     # Estado: (nodo_actual, camino, aristas_camino, visitados_set,
     #          costo_acum, tiempo_acum, km_acum)
     pila: List[Tuple[str, List[str], List[Tuple[str, float, float, float, str]],
@@ -1084,7 +1101,7 @@ def _dfs_maximizar_destinos(
                 mejor_km = km_acum
 
             # NO hacemos 'continue': seguimos explorando desde el destino
-            # para encontrar caminos aún más largos que pasen por él y
+            # to find even longer paths that pass through it and
             # lleguen a otro nodo destino (o regresen).
             # Sin embargo, si el camino ya es muy largo respecto al mejor,
             # podemos hacer poda.

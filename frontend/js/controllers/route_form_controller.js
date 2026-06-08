@@ -1,3 +1,5 @@
+// Manages the route creation form: origin/destination selection, cost/distance input.
+// Builds new nodes on the fly if they don't exist in the loaded graph.
 export class RouteFormController {
   constructor({
     formEl,
@@ -28,6 +30,7 @@ export class RouteFormController {
     this.destinationLodgingInput = null;
   }
 
+  // Initializes form elements and event listeners.
   init() {
     if (!this.formEl) {
       return;
@@ -38,12 +41,14 @@ export class RouteFormController {
     this._updateFormState();
   }
 
+  // Updates form state after graph is loaded (enables/disables fields as needed).
   onGraphLoaded() {
     this._refreshSuggestions();
     this._updateFormState();
     this._updateDistance();
   }
 
+  // Caches DOM element references from the form.
   _cacheElements() {
     this.originInput = this.formEl.querySelector("#origin-country");
     this.destinationInput = this.formEl.querySelector("#destination-country");
@@ -63,6 +68,7 @@ export class RouteFormController {
     );
   }
 
+  // Attaches event listeners to form controls.
   _bindEvents() {
     this.formEl.addEventListener("submit", (event) => {
       this._onSubmit(event);
@@ -76,6 +82,7 @@ export class RouteFormController {
     }
   }
 
+  // Enables or disables form submission based on graph availability.
   _updateFormState() {
     const submitBtn = this.formEl.querySelector("button[type='submit']");
     if (submitBtn) {

@@ -5,6 +5,8 @@ from ..models import Edge, Graph, Node, RouteResult, RouteStep
 from .path_algorithms import CostOptions
 
 
+# Greedy algorithm to find the longest path through the graph respecting budget/time constraints.
+# Returns: path as list of node IDs, edges used, accumulated cost, accumulated time.
 def _greedy_route(
     graph: Graph,
     origen_id: str,
@@ -80,6 +82,8 @@ def _greedy_route(
     return camino, aristas_usadas, costo_acum, tiempo_acum
 
 
+# Constructs a RouteResult from a greedy path.
+# Converts edges and costs into RouteStep objects with cumulative distances.
 def _build_result(
     camino: List[str],
     aristas_usadas: List[Tuple[Edge, str, float, float]],
@@ -167,6 +171,8 @@ def planificar_mejor_ruta(
     return _build_result(camino, aristas_usadas, aeronaves_cfg)
 
 
+# Generates two alternative routes: one optimized by budget, one by time.
+# Used for requirement R2 (automatic planning with two alternatives).
 def planificar_dos_alternativas(
     graph: Graph,
     origen_id: str,
